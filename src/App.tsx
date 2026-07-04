@@ -1,7 +1,7 @@
 import { useState, useCallback, Suspense, lazy } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { GraduationCap } from 'lucide-react';
-import SplineBackground from './components/SplineBackground';
+import VantaBackground from './components/VantaBackground';
 import LandingScreen from './screens/LandingScreen';
 import InputScreen from './screens/InputScreen';
 import FeedbackScreen from './screens/FeedbackScreen';
@@ -48,7 +48,7 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <SplineBackground />
+      <VantaBackground />
 
       <Suspense fallback={null}>
         <Background3D />
