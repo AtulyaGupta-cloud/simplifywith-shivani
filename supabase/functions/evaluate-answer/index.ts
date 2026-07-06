@@ -256,6 +256,53 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // ------------------------------------------------------------------
+    // Auth: require a valid user JWT. The Supabase functions.invoke client
+    // forwards the user's access token in the Authorization header.
+    // ------------------------------------------------------------------
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const userClient = createClient(SUPABASE_URL!, authHeader.replace("Bearer ", ""), {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: userData, error: userError } = await userClient.auth.getUser();
+    if (userError || !userData?.user) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const userId = userData.user.id;
+
+    // ------------------------------------------------------------------
+    // Credits: atomically check + decrement via the decrement_credit RPC.
+    // Returns 402 out_of_credits when the user has no credits and no
+    // active unlimited window.
+    // ------------------------------------------------------------------
+    const adminClient = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    const { data: creditData, error: creditError } = await adminClient.rpc("decrement_credit", {
+      user_uuid: userId,
+    });
+    if (creditError) {
+      return new Response(
+        JSON.stringify({ error: "Could not verify credits. Please try again." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const creditResult = (creditData as { ok: boolean; unlimited: boolean; credits: number }) | null;
+    if (!creditResult || !creditResult.ok) {
+      return new Response(
+        JSON.stringify({ error: "out_of_credits" }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const body = await req.json();
     const { questionText, studentAnswer, marks, isWritingFormat } = body;
 

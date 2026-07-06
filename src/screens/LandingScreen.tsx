@@ -31,7 +31,9 @@ export default function LandingScreen({ onStart }: LandingScreenProps) {
         <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-violet to-accent-cyan shadow-lg shadow-accent-violet/30">
           <GraduationCap className="h-6 w-6 text-white" strokeWidth={2.2} />
         </div>
-        <span className="text-xl font-semibold tracking-tight">Simplify with Shivani</span>
+        <span className="text-xl font-semibold tracking-tight whitespace-nowrap">
+          Evalwell <span className="font-normal text-white/60">- Simplify with Shivani</span>
+        </span>
       </motion.div>
 
       <motion.div

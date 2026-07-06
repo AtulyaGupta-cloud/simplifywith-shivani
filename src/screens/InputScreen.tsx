@@ -9,9 +9,10 @@ interface InputScreenProps {
   onFeedback: (questionText: string, studentAnswer: string, feedback: Feedback) => void;
   onBack: () => void;
   onError: (message: string) => void;
+  onOutOfCredits: () => void;
 }
 
-export default function InputScreen({ onFeedback, onBack, onError }: InputScreenProps) {
+export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredits }: InputScreenProps) {
   const [questionText, setQuestionText] = useState('');
   const [studentAnswer, setStudentAnswer] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,12 +74,23 @@ export default function InputScreen({ onFeedback, onBack, onError }: InputScreen
       });
 
       if (error) {
+        const errorBody = (data as { error?: string } | null);
+        if (errorBody?.error === 'out_of_credits') {
+          onOutOfCredits();
+          setIsSubmitting(false);
+          return;
+        }
         onError('Something went wrong on our end. Please try again.');
         setIsSubmitting(false);
         return;
       }
 
       if (data && 'error' in data && data.error) {
+        if (data.error === 'out_of_credits') {
+          onOutOfCredits();
+          setIsSubmitting(false);
+          return;
+        }
         onError(data.error);
         setIsSubmitting(false);
         return;
