@@ -12,7 +12,7 @@ const PLANS = [
     price: '₹39',
     icon: Coins,
     accent: 'from-accent-violet to-accent-cyan',
-    href: '#',
+    href: 'https://rzp.io/rzp/RiTqN42',
   },
   {
     id: 'popular',
@@ -21,7 +21,7 @@ const PLANS = [
     icon: Sparkles,
     accent: 'from-accent-cyan to-accent-emerald',
     badge: 'Best value',
-    href: '#',
+    href: 'https://rzp.io/rzp/KZ5iDYaW',
   },
   {
     id: 'unlimited',
@@ -29,7 +29,7 @@ const PLANS = [
     price: '₹199',
     icon: InfinityIcon,
     accent: 'from-accent-emerald to-accent-violet',
-    href: '#',
+    href: 'https://rzp.io/rzp/d4dCtZAV',
   },
 ];
 
@@ -100,6 +100,8 @@ export default function OutOfCreditsScreen({ onBack }: OutOfCreditsScreenProps) 
 
                 <a
                   href={plan.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="group mt-6 flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-white/[0.1] active:scale-[0.98]"
                 >
                   Buy

@@ -202,17 +202,17 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
             </label>
             <div className="relative">
               <select
-                value={selectedMarks === null ? '' : selectedMarks}
+                value={selectedMarks === null ? '' : `${selectedMarks}-${isWritingFormat}`}
                 onChange={(e) => {
-                  const idx = Number(e.target.value);
-                  const opt = marksOptions[idx];
-                  if (opt) {
-                    setSelectedMarks(opt.value);
-                    setIsWritingFormat(opt.isWriting ?? false);
-                  } else {
+                  const raw = e.target.value;
+                  if (raw === '') {
                     setSelectedMarks(null);
                     setIsWritingFormat(false);
+                    return;
                   }
+                  const [marksStr, writingStr] = raw.split('-');
+                  setSelectedMarks(Number(marksStr));
+                  setIsWritingFormat(writingStr === 'true');
                 }}
                 className="w-full appearance-none rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 pr-10 text-sm text-white transition-colors focus:border-accent-violet/40 focus:bg-white/[0.05] focus:outline-none"
               >
@@ -220,7 +220,7 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
                   Select marks…
                 </option>
                 {marksOptions.map((opt, i) => (
-                  <option key={i} value={i} className="bg-ink-800 text-white">
+                  <option key={i} value={`${opt.value}-${opt.isWriting ?? false}`} className="bg-ink-800 text-white">
                     {opt.label}
                   </option>
                 ))}
