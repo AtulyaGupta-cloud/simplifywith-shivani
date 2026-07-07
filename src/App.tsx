@@ -2,7 +2,7 @@ import { useState, useCallback, Suspense, lazy } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { GraduationCap } from 'lucide-react';
 import VantaBackground from './components/VantaBackground';
-import CreditsPill from './components/CreditsPill';
+import ProfileMenu from './components/ProfileMenu';
 import LandingScreen from './screens/LandingScreen';
 import LoginScreen from './screens/LoginScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
@@ -96,7 +96,7 @@ export default function App() {
                 Evalwell <span className="font-normal text-white/60">- Simplify with Shivani</span>
               </span>
             </button>
-            <CreditsPill profile={profile} isUnlimited={isUnlimited} onSignOut={signOut} />
+            <ProfileMenu profile={profile} user={user} isUnlimited={isUnlimited} onSignOut={signOut} />
           </div>
         )}
       </AnimatePresence>

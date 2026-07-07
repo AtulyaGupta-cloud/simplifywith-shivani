@@ -73,8 +73,16 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
         },
       });
 
+      // 402 out_of_credits: the body lives on the FunctionsHttpError context
       if (error) {
-        const errorBody = (data as { error?: string } | null);
+        let errorBody: { error?: string } | null = data as { error?: string } | null;
+        if (!errorBody?.error && error.context) {
+          try {
+            errorBody = await (error.context as Response).json();
+          } catch {
+            errorBody = null;
+          }
+        }
         if (errorBody?.error === 'out_of_credits') {
           onOutOfCredits();
           setIsSubmitting(false);

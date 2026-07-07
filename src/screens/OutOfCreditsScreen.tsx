@@ -1,37 +1,10 @@
 import { motion } from 'framer-motion';
-import { Coins, Sparkles, Infinity as InfinityIcon, ArrowRight } from 'lucide-react';
+import { Coins, ArrowRight } from 'lucide-react';
+import { PRICING_PLANS } from '../lib/pricing';
 
 interface OutOfCreditsScreenProps {
   onBack: () => void;
 }
-
-const PLANS = [
-  {
-    id: 'starter',
-    credits: '15 credits',
-    price: '₹39',
-    icon: Coins,
-    accent: 'from-accent-violet to-accent-cyan',
-    href: 'https://rzp.io/rzp/RiTqN42',
-  },
-  {
-    id: 'popular',
-    credits: '50 credits',
-    price: '₹99',
-    icon: Sparkles,
-    accent: 'from-accent-cyan to-accent-emerald',
-    badge: 'Best value',
-    href: 'https://rzp.io/rzp/KZ5iDYaW',
-  },
-  {
-    id: 'unlimited',
-    credits: 'Unlimited for 60 days',
-    price: '₹199',
-    icon: InfinityIcon,
-    accent: 'from-accent-emerald to-accent-violet',
-    href: 'https://rzp.io/rzp/d4dCtZAV',
-  },
-];
 
 export default function OutOfCreditsScreen({ onBack }: OutOfCreditsScreenProps) {
   return (
@@ -71,7 +44,7 @@ export default function OutOfCreditsScreen({ onBack }: OutOfCreditsScreenProps) 
         </motion.p>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
-          {PLANS.map((plan, i) => {
+          {PRICING_PLANS.map((plan, i) => {
             const Icon = plan.icon;
             return (
               <motion.div
