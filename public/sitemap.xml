@@ -6,3 +6,8 @@
     <priority>1.0</priority>
   </url>
 </urlset>
+<url>
+    <loc>https://simplifywith-shivani.vercel.app/notice-writing-guide.html</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
