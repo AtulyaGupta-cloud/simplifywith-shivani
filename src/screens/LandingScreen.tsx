@@ -1,5 +1,7 @@
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, GraduationCap } from 'lucide-react';
+import ComparisonSection from '../components/ComparisonSection';
+import HowItWorksSection from '../components/HowItWorksSection';
 
 interface LandingScreenProps {
   onStart: () => void;
@@ -40,7 +42,6 @@ export default function LandingScreen({ onStart }: LandingScreenProps) {
         variants={item}
         className="relative mb-10 overflow-hidden rounded-[32px] border border-white/15 bg-white/[0.06] px-8 py-12 shadow-2xl shadow-black/40 backdrop-blur-[40px] sm:px-14 sm:py-16"
       >
-        {/* Inner top-edge highlight to mimic glass reflection */}
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"
           aria-hidden
@@ -57,19 +58,24 @@ export default function LandingScreen({ onStart }: LandingScreenProps) {
           </span>
 
           <h1 className="mt-6 max-w-4xl text-center text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-            Know exactly what's missing
+            Not another chatbot guessing at your answer.
             <br />
-            from your <span className="gradient-text">answer.</span>
+            Evalwell thinks like your <span className="gradient-text">examiner.</span>
           </h1>
 
           <p className="mt-6 max-w-xl text-center text-base leading-relaxed text-white/60 sm:text-lg">
-            Paste any CBSE Class 12 English question and your answer. Get examiner-grade
-            feedback in seconds — what you nailed, what's missing, and exactly how to improve.
+            It reads your actual CBSE marking scheme and scores exactly what a real examiner
+            would look for — not just another chatbot guessing at your answer.
           </p>
         </div>
       </motion.div>
 
-      <motion.div variants={item} className="mt-10">
+      <motion.p variants={item} className="mb-8 max-w-md text-center text-sm text-white/40 italic">
+        Built by a CBSE student who got tired of generic AI feedback that missed what
+        examiners actually look for.
+      </motion.p>
+
+      <motion.div variants={item} className="mt-2">
         <button
           onClick={onStart}
           className="group relative inline-flex items-center gap-2.5 overflow-hidden rounded-2xl bg-gradient-to-r from-accent-violet to-accent-cyan px-8 py-4 text-base font-semibold text-white shadow-lg shadow-accent-violet/30 transition-all duration-300 hover:scale-[1.03] hover:shadow-accent-violet/50 active:scale-[0.98] animate-glow-pulse"
@@ -95,6 +101,11 @@ export default function LandingScreen({ onStart }: LandingScreenProps) {
           <span className="h-1.5 w-1.5 rounded-full bg-accent-violet" />
           Model answers included
         </span>
+      </motion.div>
+
+      <motion.div variants={item} className="w-full">
+        <ComparisonSection />
+        <HowItWorksSection />
       </motion.div>
     </motion.div>
   );
