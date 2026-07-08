@@ -4,7 +4,6 @@ import * as THREE from 'three';
 interface VantaNetEffect {
   destroy: () => void;
 }
-
 interface VantaNetConstructor {
   (options: {
     el: HTMLElement;
@@ -15,6 +14,11 @@ interface VantaNetConstructor {
     maxDistance?: number;
     spacing?: number;
     showDots?: boolean;
+    mouseControls?: boolean;
+    touchControls?: boolean;
+    gyroControls?: boolean;
+    scale?: number;
+    scaleMobile?: number;
   }): VantaNetEffect;
 }
 
@@ -24,24 +28,29 @@ export default function VantaBackground() {
 
   useEffect(() => {
     let cancelled = false;
-
     (async () => {
       const mod = await import('vanta/dist/vanta.net.min');
       const VANTA = (mod.default ?? mod) as unknown as VantaNetConstructor;
       if (cancelled || !containerRef.current) return;
+
+      const isMobile = window.innerWidth < 768;
 
       effectRef.current = VANTA({
         el: containerRef.current,
         THREE,
         color: 0x7c5cff,
         backgroundColor: 0x0a0a0f,
-        points: 12,
-        maxDistance: 24,
-        spacing: 18,
-        showDots: true,
+        points: isMobile ? 5 : 12,
+        maxDistance: isMobile ? 14 : 24,
+        spacing: isMobile ? 28 : 18,
+        showDots: !isMobile,
+        mouseControls: !isMobile,
+        touchControls: false,
+        gyroControls: false,
+        scale: 1.0,
+        scaleMobile: 1.0,
       });
     })();
-
     return () => {
       cancelled = true;
       if (effectRef.current) {
