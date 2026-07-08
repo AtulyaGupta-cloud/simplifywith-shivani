@@ -71,8 +71,8 @@ export default function LandingScreen({ onStart }: LandingScreenProps) {
       </motion.div>
 
       <motion.p variants={item} className="mb-8 max-w-md text-center text-sm text-white/40 italic">
-        Built by a CBSE student who got tired of generic AI feedback that missed what
-        examiners actually look for.
+        Built by an experienced CBSE Class 12th examiner — feedback that reflects
+what real examiners actually look for.
       </motion.p>
 
       <motion.div variants={item} className="mt-2">
@@ -107,6 +107,9 @@ export default function LandingScreen({ onStart }: LandingScreenProps) {
         <ComparisonSection />
         <HowItWorksSection />
       </motion.div>
+   <motion.p variants={item} className="mt-20 text-center text-xs text-white/30">
+        Built by Shivani Gupta — 25+ years experienced CBSE examiner / educator
+      </motion.p>
     </motion.div>
   );
 }
