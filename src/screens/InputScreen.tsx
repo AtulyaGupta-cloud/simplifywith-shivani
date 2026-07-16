@@ -10,9 +10,10 @@ interface InputScreenProps {
   onBack: () => void;
   onError: (message: string) => void;
   onOutOfCredits: () => void;
+  onSubmitted: () => void;
 }
 
-export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredits }: InputScreenProps) {
+export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredits, onSubmitted }: InputScreenProps) {
   const [questionText, setQuestionText] = useState('');
   const [studentAnswer, setStudentAnswer] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,42 +79,33 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
         let errorBody: { error?: string } | null = data as { error?: string } | null;
         if (!errorBody?.error && error.context) {
           try {
-            errorBody = await (error.context as Response).json();
+            const ctx = error.context as Response;
+            errorBody = await ctx.json();
+            // Only treat as out_of_credits when the function returned 402
+            if (ctx.status !== 402) errorBody = null;
           } catch {
             errorBody = null;
           }
         }
         if (errorBody?.error === 'out_of_credits') {
           onOutOfCredits();
-          setIsSubmitting(false);
           return;
         }
         onError('Something went wrong on our end. Please try again.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (data && 'error' in data && data.error) {
-        if (data.error === 'out_of_credits') {
-          onOutOfCredits();
-          setIsSubmitting(false);
-          return;
-        }
-        onError(data.error);
-        setIsSubmitting(false);
         return;
       }
 
       if (!data || typeof (data as Feedback).score !== 'number') {
         onError("We couldn't process your answer. Please try again.");
-        setIsSubmitting(false);
         return;
       }
 
       onFeedback(questionText.trim(), studentAnswer.trim(), data as Feedback);
     } catch (e) {
       onError('Network error — please check your connection and try again.');
+    } finally {
       setIsSubmitting(false);
+      onSubmitted();
     }
   };
 

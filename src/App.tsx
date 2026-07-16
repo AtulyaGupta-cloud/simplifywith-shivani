@@ -39,9 +39,8 @@ export default function App() {
     (_questionText: string, _studentAnswer: string, fb: Feedback) => {
       setFeedback(fb);
       setState('feedback');
-      refreshProfile();
     },
-    [refreshProfile],
+    [],
   );
 
   const handleOutOfCredits = useCallback(() => setState('out_of_credits'), []);
@@ -117,6 +116,7 @@ export default function App() {
               onBack={handleBackToLanding}
               onError={handleError}
               onOutOfCredits={handleOutOfCredits}
+              onSubmitted={refreshProfile}
             />
           )}
           {state === 'feedback' && feedback && (
