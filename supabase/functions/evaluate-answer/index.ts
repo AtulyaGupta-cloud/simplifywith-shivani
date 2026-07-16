@@ -9,6 +9,7 @@ const corsHeaders = {
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const GENERATION_MODEL = "gemini-2.5-flash";
@@ -270,10 +271,11 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const userClient = createClient(SUPABASE_URL!, authHeader.replace("Bearer ", ""), {
+    const userClient = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data: userData, error: userError } = await userClient.auth.getUser();
+    const jwt = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await userClient.auth.getUser(jwt);
     if (userError || !userData?.user) {
       return new Response(
         JSON.stringify({ error: "Authentication required." }),
