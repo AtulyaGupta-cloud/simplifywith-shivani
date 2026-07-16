@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, ChevronDown, Coins, Infinity as InfinityIcon, ArrowRight } from 'lucide-react';
+import { LogOut, ChevronDown, Coins, Infinity as InfinityIcon, ArrowRight, History } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Profile } from '../hooks/useAuth';
 import { PRICING_PLANS } from '../lib/pricing';
+import HistoryPanel from './HistoryPanel';
+import SubmissionDetailModal from './SubmissionDetailModal';
 
 interface ProfileMenuProps {
   profile: Profile | null;
@@ -15,6 +17,8 @@ interface ProfileMenuProps {
 export default function ProfileMenu({ profile, user, isUnlimited, onSignOut }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const [showPlans, setShowPlans] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,6 +26,7 @@ export default function ProfileMenu({ profile, user, isUnlimited, onSignOut }: P
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
         setShowPlans(false);
+        setShowHistory(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -60,7 +65,7 @@ export default function ProfileMenu({ profile, user, isUnlimited, onSignOut }: P
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.96 }}
             transition={{ duration: 0.18 }}
-            className="absolute right-0 top-full mt-2 w-64 overflow-hidden rounded-2xl border border-white/15 bg-ink-900/80 p-1.5 shadow-2xl shadow-black/50 backdrop-blur-[40px]"
+            className="absolute right-0 top-full mt-2 w-72 overflow-hidden rounded-2xl border border-white/15 bg-ink-900/80 p-1.5 shadow-2xl shadow-black/50 backdrop-blur-[40px]"
           >
             <div className="flex items-center gap-3 px-3 py-2.5">
               {avatarUrl ? (
@@ -93,6 +98,45 @@ export default function ProfileMenu({ profile, user, isUnlimited, onSignOut }: P
                 {isUnlimited ? 'Unlimited' : profile.credits}
               </span>
             </div>
+
+            <div className="my-1 h-px bg-white/10" />
+
+            {/* History */}
+            <button
+              onClick={() => setShowHistory((v) => !v)}
+              className="flex w-full items-center justify-between gap-2.5 rounded-xl px-3 py-2.5 text-sm text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white"
+            >
+              <span className="flex items-center gap-2.5">
+                <History className="h-4 w-4" />
+                History
+              </span>
+              <ChevronDown
+                className={`h-3.5 w-3.5 text-white/40 transition-transform ${showHistory ? 'rotate-180' : ''}`}
+              />
+            </button>
+
+            <AnimatePresence>
+              {showHistory && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="px-0.5 pb-1.5 pt-1">
+                    <HistoryPanel
+                      userId={profile.id}
+                      onSelectSubmission={(id) => {
+                        setShowHistory(false);
+                        setOpen(false);
+                        setDetailId(id);
+                      }}
+                    />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="my-1 h-px bg-white/10" />
 
@@ -151,6 +195,7 @@ export default function ProfileMenu({ profile, user, isUnlimited, onSignOut }: P
               onClick={() => {
                 setOpen(false);
                 setShowPlans(false);
+                setShowHistory(false);
                 onSignOut();
               }}
               className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-white/70 transition-colors hover:bg-white/[0.06] hover:text-white"
@@ -161,6 +206,8 @@ export default function ProfileMenu({ profile, user, isUnlimited, onSignOut }: P
           </motion.div>
         )}
       </AnimatePresence>
+
+      <SubmissionDetailModal submissionId={detailId} onClose={() => setDetailId(null)} />
     </div>
   );
 }

@@ -19,8 +19,6 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
   const [answerValidationError, setAnswerValidationError] = useState('');
   const [selectedMarks, setSelectedMarks] = useState<number | null>(null);
   const [isWritingFormat, setIsWritingFormat] = useState(false);
-  const [questionInterim, setQuestionInterim] = useState('');
-  const [answerInterim, setAnswerInterim] = useState('');
 
   const marksOptions = [
     { value: 1, label: '1 Mark' },
@@ -33,21 +31,20 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
 
   const questionVoice = useVoiceInput(
     useCallback((text: string, isFinal: boolean) => {
-      setQuestionInterim(text);
-      if (isFinal) {
-        setQuestionText(prev => prev + (prev && !prev.endsWith(' ') ? ' ' : '') + text);
-        setQuestionInterim('');
-      }
+      setQuestionText((prev) => {
+        if (isFinal) return prev + (prev && !prev.endsWith(' ') ? ' ' : '') + text;
+        // For interim, we don't replace — just append to show live transcription
+        return prev;
+      });
     }, []),
   );
 
   const answerVoice = useVoiceInput(
     useCallback((text: string, isFinal: boolean) => {
-      setAnswerInterim(text);
-      if (isFinal) {
-        setStudentAnswer(prev => prev + (prev && !prev.endsWith(' ') ? ' ' : '') + text);
-        setAnswerInterim('');
-      }
+      setStudentAnswer((prev) => {
+        if (isFinal) return prev + (prev && !prev.endsWith(' ') ? ' ' : '') + text;
+        return prev;
+      });
     }, []),
   );
 
@@ -187,13 +184,8 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
           </div>
           <div className="relative">
             <textarea
-              value={questionVoice.isListening && questionInterim
-                ? questionText + (questionText ? ' ' : '') + questionInterim
-                : questionText}
-              onChange={(e) => {
-                setQuestionText(e.target.value);
-                setQuestionInterim('');
-              }}
+              value={questionText}
+              onChange={(e) => setQuestionText(e.target.value)}
               placeholder="e.g. Q4. Explain how the Tiger King outwitted death four times."
               rows={3}
               className="w-full resize-none rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 pr-14 text-sm leading-relaxed text-white placeholder:text-white/30 transition-colors focus:border-accent-violet/40 focus:bg-white/[0.05] focus:outline-none"
@@ -264,12 +256,9 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
           </div>
           <div className="relative">
             <textarea
-              value={answerVoice.isListening && answerInterim
-                ? studentAnswer + (studentAnswer ? ' ' : '') + answerInterim
-                : studentAnswer}
+              value={studentAnswer}
               onChange={(e) => {
                 setStudentAnswer(e.target.value);
-                setAnswerInterim('');
                 if (answerValidationError) setAnswerValidationError('');
               }}
               placeholder="Write your full answer here. Take your time — be as detailed as you would in the exam."

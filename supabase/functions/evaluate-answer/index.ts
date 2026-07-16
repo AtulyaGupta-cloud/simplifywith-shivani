@@ -226,6 +226,7 @@ async function logSubmission(
   studentAnswer: string,
   feedback: Feedback,
   chapterId: string | null,
+  userId: string,
 ): Promise<void> {
   try {
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
@@ -236,6 +237,7 @@ async function logSubmission(
       score: feedback.score,
       max_score: feedback.maxScore,
       chapter_id: chapterId,
+      user_id: userId,
     });
   } catch (e) {
     // Non-blocking — log but don't fail the response
@@ -382,7 +384,7 @@ Deno.serve(async (req: Request) => {
     if (feedback.score > marks) feedback.score = marks;
 
     // Step 5: Log submission (non-blocking)
-    await logSubmission(questionText, studentAnswer, feedback, bestChapterId);
+    await logSubmission(questionText, studentAnswer, feedback, bestChapterId, userId);
 
     return new Response(
       JSON.stringify(feedback),
