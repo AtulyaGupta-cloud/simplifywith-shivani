@@ -284,6 +284,11 @@ Deno.serve(async (req: Request) => {
     }
     const userId = userData.user.id;
 
+    // ------------------------------------------------------------------
+    // Shared Supabase admin client for profile check and credit operations
+    // ------------------------------------------------------------------
+    const adminClient = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
     // Ensure profile exists - create if missing with default credits
     const profileCheck = await adminClient
       .from('profiles')
@@ -315,7 +320,6 @@ Deno.serve(async (req: Request) => {
     // Returns 402 out_of_credits when the user has no credits and no
     // active unlimited window.
     // ------------------------------------------------------------------
-    const adminClient = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
     const { data: creditData, error: creditError } = await adminClient.rpc("decrement_credit", {
       user_uuid: userId,
     });
