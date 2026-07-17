@@ -284,6 +284,32 @@ Deno.serve(async (req: Request) => {
     }
     const userId = userData.user.id;
 
+    // Ensure profile exists - create if missing with default credits
+    const profileCheck = await adminClient
+      .from('profiles')
+      .select('credits, unlimited_until')
+      .eq('id', userId)
+      .single();
+
+    if (profileCheck.error && profileCheck.error.code === 'PGRST116') {
+      // PGRST116 means no rows returned (not found)
+      await adminClient
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: userData.user.email || '', // Use email from auth user if available
+          credits: 5, // Default starting credits
+          unlimited_until: null
+        });
+    } else if (profileCheck.error) {
+      // Some other error occurred
+      return new Response(
+        JSON.stringify({ error: "Could not verify profile. Please try again." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    // If profile exists, profileCheck.data will have the values and we continue
+
     // ------------------------------------------------------------------
     // Credits: atomically check + decrement via the decrement_credit RPC.
     // Returns 402 out_of_credits when the user has no credits and no
