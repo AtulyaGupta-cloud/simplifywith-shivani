@@ -3,7 +3,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
@@ -12,7 +13,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
-const GENERATION_MODEL = "gemini-2.5-flash";  // FIXED: Was duplicated
+const GENERATION_MODEL = "gemini-2.5-flash"; // FIXED: Was duplicated
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 interface Feedback {
   score: number;
@@ -32,7 +37,8 @@ function stripCodeFences(text: string): string {
 }
 
 async function generateEmbedding(text: string): Promise<number[]> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent?key=${GEMINI_API_KEY}`;
+  const url =
+    `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent?key=${GEMINI_API_KEY}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -99,7 +105,9 @@ No specific chapter material was found for this question. Evaluate based on gene
   // Scale evaluation depth by mark value
   let depthGuidance = "";
   if (marks <= 2) {
-    depthGuidance = `## Marking Scale: ${marks} Mark${marks > 1 ? "s" : ""} (Short Answer)
+    depthGuidance = `## Marking Scale: ${marks} Mark${
+      marks > 1 ? "s" : ""
+    } (Short Answer)
 This is a low-mark question. Expect a short, precise, factual answer of 1-3 sentences.
 - Focus on accuracy and precision, NOT depth or elaboration.
 - A correct, concise answer should score full marks.
@@ -136,7 +144,8 @@ This is a writing-section question (Notice, Letter, Article, or Report). The ans
 - The model answer must demonstrate the correct format for the writing type.`;
   }
 
-  const systemInstruction = `You are a strict but encouraging CBSE Class 12 English examiner with 15+ years of experience evaluating board exam answer sheets. You deeply understand the CBSE marking scheme, question patterns, and what earns marks versus what loses them.
+  const systemInstruction =
+    `You are a strict but encouraging CBSE Class 12 English examiner with 15+ years of experience evaluating board exam answer sheets. You deeply understand the CBSE marking scheme, question patterns, and what earns marks versus what loses them.
 
 ${referenceSection}
 
@@ -149,12 +158,24 @@ Evaluate the student's answer against the reference material and CBSE marking st
 1. The max marks for this question is ${marks}. You MUST return exactly ${marks} as "maxScore" in the JSON — never infer, change, or override this value.
 2. Award a score (0 to ${marks}) that reflects how completely and accurately the answer addresses the question, scaled to the marking guidance above.
 3. Identify specific points the student covered well ("What you nailed").
-4. Identify specific points that were missing or underdeveloped ("What was missing").${isWritingFormat ? ' Include missing FORMAT elements as separate items here.' : ''}
+4. Identify specific points that were missing or underdeveloped ("What was missing").${
+      isWritingFormat
+        ? " Include missing FORMAT elements as separate items here."
+        : ""
+    }
 5. Provide concrete, actionable rewrite suggestions ("How to improve") — not generic advice but specific changes the student can make.
-6. Write an ideal/model answer that would earn full marks — examiner-quality, well-structured, and complete.${isWritingFormat ? ' The model answer must demonstrate the correct format for the writing type.' : ''}
+6. Write an ideal/model answer that would earn full marks — examiner-quality, well-structured, and complete.${
+      isWritingFormat
+        ? " The model answer must demonstrate the correct format for the writing type."
+        : ""
+    }
 7. Give one short, encouraging, specific tip in the "Examiner's tip" that the student can apply to future answers.
 
-${!hasReferenceMaterial ? "Since no specific chapter material was found, note in the examiner's tip that the evaluation is based on general CBSE writing standards rather than specific chapter material." : ""}
+${
+      !hasReferenceMaterial
+        ? "Since no specific chapter material was found, note in the examiner's tip that the evaluation is based on general CBSE writing standards rather than specific chapter material."
+        : ""
+    }
 
 ## Output Format
 Return ONLY valid JSON. No markdown formatting, no code fences, no commentary before or after. The JSON must match this exact shape:
@@ -176,7 +197,8 @@ ${studentAnswer}
 
 Now evaluate this answer and return ONLY the JSON object.`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GENERATION_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  const url =
+    `https://generativelanguage.googleapis.com/v1beta/models/${GENERATION_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -207,8 +229,12 @@ Now evaluate this answer and return ONLY the JSON object.`;
   let parsed: Feedback;
   try {
     parsed = JSON.parse(cleaned);
-  } catch (e) {
-    throw new Error(`Failed to parse Gemini JSON output: ${e.message}. Raw: ${cleaned.substring(0, 200)}`);
+  } catch (error) {
+    throw new Error(
+      `Failed to parse Gemini JSON output: ${errorMessage(error)}. Raw: ${
+        cleaned.substring(0, 200)
+      }`,
+    );
   }
 
   // Validate shape
@@ -245,9 +271,9 @@ async function logSubmission(
       chapter_id: chapterId,
       user_id: userId,
     });
-  } catch (e) {
+  } catch (error) {
     // Non-blocking — log but don't fail the response
-    console.error("Failed to log submission:", e.message);
+    console.error("Failed to log submission:", errorMessage(error));
   }
 }
 
@@ -259,8 +285,26 @@ Deno.serve(async (req: Request) => {
   try {
     if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "Gemini API key is not configured. Please set the GEMINI_API_KEY secret." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          error:
+            "Gemini API key is not configured. Please set the GEMINI_API_KEY secret.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_ANON_KEY) {
+      return new Response(
+        JSON.stringify({
+          error: "Required Supabase environment variables are not configured.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -272,7 +316,10 @@ Deno.serve(async (req: Request) => {
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Authentication required." }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -280,11 +327,16 @@ Deno.serve(async (req: Request) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
     const jwt = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await userClient.auth.getUser(jwt);
+    const { data: userData, error: userError } = await userClient.auth.getUser(
+      jwt,
+    );
     if (userError || !userData?.user) {
       return new Response(
         JSON.stringify({ error: "Authentication required." }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
     const userId = userData.user.id;
@@ -296,81 +348,164 @@ Deno.serve(async (req: Request) => {
 
     // Ensure profile exists - create if missing with default credits
     const profileCheck = await adminClient
-      .from('profiles')
-      .select('credits, unlimited_until')
-      .eq('id', userId)
+      .from("profiles")
+      .select("credits, unlimited_until")
+      .eq("id", userId)
       .single();
 
-    if (profileCheck.error && profileCheck.error.code === 'PGRST116') {
+    let profile = profileCheck.data;
+
+    if (profileCheck.error && profileCheck.error.code === "PGRST116") {
       // PGRST116 means no rows returned (not found)
-      await adminClient
-        .from('profiles')
+      const { data: createdProfile, error: createError } = await adminClient
+        .from("profiles")
         .insert({
           id: userId,
-          email: userData.user.email || '', // Use email from auth user if available
+          email: userData.user.email || "", // Use email from auth user if available
           credits: 5, // Default starting credits
-          unlimited_until: null
-        });
+          unlimited_until: null,
+        })
+        .select("credits, unlimited_until")
+        .single();
+      if (createError) {
+        return new Response(
+          JSON.stringify({
+            error: "Could not create profile. Please try again.",
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+      profile = createdProfile;
     } else if (profileCheck.error) {
       // Some other error occurred
       return new Response(
-        JSON.stringify({ error: "Could not verify profile. Please try again." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          error: "Could not verify profile. Please try again.",
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     } else {
       // Profile exists - check if credits need initialization (handles cases where profile was created without credits)
       if (profileCheck.data && profileCheck.data.credits === null) {
-        await adminClient
-          .from('profiles')
+        const { error: initializeError } = await adminClient
+          .from("profiles")
           .update({ credits: 5 })
-          .eq('id', userId);
+          .eq("id", userId);
+        if (initializeError) {
+          return new Response(
+            JSON.stringify({
+              error: "Could not initialize credits. Please try again.",
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
+        profile = { ...profileCheck.data, credits: 5 };
       }
       // If profile exists with valid credits, we continue
     }
 
     // ------------------------------------------------------------------
-    // Credits: atomically check + decrement via the decrement_credit RPC.
-    // Returns 402 out_of_credits when the user has no credits and no
-    // active unlimited window.
+    // Check access without charging. The credit is atomically consumed only
+    // after Gemini has produced valid feedback, so failed evaluations are free.
     // ------------------------------------------------------------------
-    const { data: creditData, error: creditError } = await adminClient.rpc("decrement_credit", {
-      user_uuid: userId,
-    });
-    if (creditError) {
-      return new Response(
-        JSON.stringify({ error: "Could not verify credits. Please try again." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-    const creditResult = (creditData as { ok: boolean; unlimited: boolean; credits: number }) | null;
-    if (!creditResult || !creditResult.ok) {
-      return new Response(
-        JSON.stringify({ error: "out_of_credits" }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    const hasUnlimitedAccess = !!profile?.unlimited_until &&
+      new Date(profile.unlimited_until).getTime() > Date.now();
+    const availableCredits = profile?.credits ?? 0;
+
+    if (!hasUnlimitedAccess && availableCredits <= 0) {
+      // One-time repair for profiles whose free credits were consumed by the
+      // previous function before any evaluation completed successfully.
+      const { count, error: countError } = await adminClient
+        .from("submissions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+
+      if (countError) {
+        return new Response(
+          JSON.stringify({
+            error: "Could not verify credit history. Please try again.",
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+
+      if (count === 0) {
+        const { error: restoreError } = await adminClient
+          .from("profiles")
+          .update({ credits: 5 })
+          .eq("id", userId);
+        if (restoreError) {
+          return new Response(
+            JSON.stringify({
+              error: "Could not restore credits. Please try again.",
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            },
+          );
+        }
+      } else {
+        return new Response(
+          JSON.stringify({ error: "out_of_credits" }),
+          {
+            status: 402,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
     }
 
     const body = await req.json();
     const { questionText, studentAnswer, marks, isWritingFormat } = body;
 
-    if (!questionText || typeof questionText !== "string" || questionText.trim().length < 5) {
+    if (
+      !questionText || typeof questionText !== "string" ||
+      questionText.trim().length < 5
+    ) {
       return new Response(
         JSON.stringify({ error: "A valid question is required." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    if (!studentAnswer || typeof studentAnswer !== "string" || studentAnswer.trim().length < 10) {
+    if (
+      !studentAnswer || typeof studentAnswer !== "string" ||
+      studentAnswer.trim().length < 10
+    ) {
       return new Response(
-        JSON.stringify({ error: "Please write a more complete answer before submitting." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          error: "Please write a more complete answer before submitting.",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (typeof marks !== "number" || ![1, 2, 3, 4, 5].includes(marks)) {
       return new Response(
         JSON.stringify({ error: "A valid marks selection is required." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -380,10 +515,17 @@ Deno.serve(async (req: Request) => {
     let queryEmbedding: number[];
     try {
       queryEmbedding = await generateEmbedding(questionText);
-    } catch (e) {
+    } catch (error) {
       return new Response(
-        JSON.stringify({ error: `Failed to generate question embedding: ${e.message}` }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          error: `Failed to generate question embedding: ${
+            errorMessage(error)
+          }`,
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -394,31 +536,46 @@ Deno.serve(async (req: Request) => {
     try {
       referenceChunks = await matchReferenceChunks(queryEmbedding, 8);
       // Consider material relevant if top similarity is above a threshold
-      hasReferenceMaterial = referenceChunks.length > 0 && referenceChunks[0].similarity > 0.65;
+      hasReferenceMaterial = referenceChunks.length > 0 &&
+        referenceChunks[0].similarity > 0.65;
       if (hasReferenceMaterial) {
         bestChapterId = referenceChunks[0].chapter_id;
       }
-    } catch (e) {
+    } catch (error) {
       // Continue without reference material — evaluate on general standards
-      console.error("match_chunks failed:", e.message);
+      console.error("match_chunks failed:", errorMessage(error));
     }
 
     // Step 3: Build reference context
     const referenceContext = hasReferenceMaterial
       ? referenceChunks
-          .slice(0, 5)
-          .map((c, i) => `[${i + 1}] (Source: ${c.source_file || "unknown"})\n${c.content}`)
-          .join("\n\n")
+        .slice(0, 5)
+        .map((c, i) =>
+          `[${i + 1}] (Source: ${c.source_file || "unknown"})\n${c.content}`
+        )
+        .join("\n\n")
       : "";
 
     // Step 4: Generate feedback via Gemini
     let feedback: Feedback;
     try {
-      feedback = await generateFeedback(referenceContext, questionText, studentAnswer, hasReferenceMaterial, marks, writingFormat);
-    } catch (e) {
+      feedback = await generateFeedback(
+        referenceContext,
+        questionText,
+        studentAnswer,
+        hasReferenceMaterial,
+        marks,
+        writingFormat,
+      );
+    } catch (error) {
       return new Response(
-        JSON.stringify({ error: `Failed to generate feedback: ${e.message}` }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({
+          error: `Failed to generate feedback: ${errorMessage(error)}`,
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -428,17 +585,52 @@ Deno.serve(async (req: Request) => {
     if (feedback.score < 0) feedback.score = 0;
     if (feedback.score > marks) feedback.score = marks;
 
+    // Charge exactly once, and only after a successful evaluation.
+    const { data: creditData, error: creditError } = await adminClient.rpc(
+      "decrement_credit",
+      { user_uuid: userId },
+    );
+    type CreditResult = { ok: boolean; unlimited: boolean; credits: number };
+    const creditResult = Array.isArray(creditData)
+      ? (creditData[0] as CreditResult | undefined)
+      : (creditData as CreditResult | null);
+    if (creditError || !creditResult?.ok) {
+      return new Response(
+        JSON.stringify({
+          error: creditError
+            ? "Could not charge credit. Please try again."
+            : "out_of_credits",
+        }),
+        {
+          status: creditError ? 500 : 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     // Step 5: Log submission (non-blocking)
-    await logSubmission(questionText, studentAnswer, feedback, bestChapterId, userId);
+    await logSubmission(
+      questionText,
+      studentAnswer,
+      feedback,
+      bestChapterId,
+      userId,
+    );
 
     return new Response(
       JSON.stringify(feedback),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
-  } catch (err) {
+  } catch (error) {
     return new Response(
-      JSON.stringify({ error: `Something went wrong: ${err.message}` }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({ error: `Something went wrong: ${errorMessage(error)}` }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

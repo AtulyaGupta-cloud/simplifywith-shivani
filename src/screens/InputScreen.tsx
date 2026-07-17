@@ -101,7 +101,7 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
       }
 
       onFeedback(questionText.trim(), studentAnswer.trim(), data as Feedback);
-    } catch (e) {
+    } catch {
       onError('Network error — please check your connection and try again.');
     } finally {
       setIsSubmitting(false);

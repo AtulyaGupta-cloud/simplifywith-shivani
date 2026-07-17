@@ -23,7 +23,7 @@ const cardVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
-export function renderBoldMarkdown(text: string) {
+function renderBoldMarkdown(text: string) {
   const parts = text.split(/\*\*(.+?)\*\*/g);
   return parts.map((part, i) =>
     i % 2 === 1 ? <strong key={i} className="font-semibold text-white">{part}</strong> : part,

@@ -27,8 +27,21 @@ export default function VantaBackground() {
 
     (async () => {
       const mod = await import('vanta/dist/vanta.net.min');
-      const VANTA = (mod.default ?? mod) as unknown as VantaNetConstructor;
+      const exported = mod.default as unknown;
+      const VANTA = (
+        typeof exported === 'function'
+          ? exported
+          : (exported as { default?: unknown } | null)?.default
+      ) as VantaNetConstructor | undefined;
       if (cancelled || !containerRef.current) return;
+
+      // Vanta is CommonJS and Vite 8 wraps its callable export in `default`.
+      // If its export shape changes again, keep the app usable without the
+      // decorative background instead of crashing the page.
+      if (typeof VANTA !== 'function') {
+        console.warn('Vanta background could not be initialized.');
+        return;
+      }
 
       effectRef.current = VANTA({
         el: containerRef.current,
