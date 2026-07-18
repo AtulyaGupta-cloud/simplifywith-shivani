@@ -97,9 +97,9 @@ Use this reference material to evaluate the student's answer against the expecte
 No specific chapter material was found for this question. Evaluate based on general CBSE Class 12 English writing standards and mark schemes. The max marks for this question is ${marks} (selected by the student) — do NOT change this value.`;
 
   // Scale evaluation depth by mark value
-  let depthGuidance = '';
+  let depthGuidance = "";
   if (marks <= 2) {
-    depthGuidance = `## Marking Scale: ${marks} Mark${marks > 1 ? 's' : ''} (Short Answer)
+    depthGuidance = `## Marking Scale: ${marks} Mark${marks > 1 ? "s" : ""} (Short Answer)
 This is a low-mark question. Expect a short, precise, factual answer of 1-3 sentences.
 - Focus on accuracy and precision, NOT depth or elaboration.
 - A correct, concise answer should score full marks.
@@ -212,10 +212,15 @@ Now evaluate this answer and return ONLY the JSON object.`;
   }
 
   // Validate shape
-  if (typeof parsed.score !== "number" || typeof parsed.maxScore !== "number" ||
-      !Array.isArray(parsed.coveredPoints) || !Array.isArray(parsed.missingPoints) ||
-      !Array.isArray(parsed.improvementSuggestions) ||
-      typeof parsed.modelAnswer !== "string" || typeof parsed.examinerTip !== "string") {
+  if (
+    typeof parsed.score !== "number" ||
+    typeof parsed.maxScore !== "number" ||
+    !Array.isArray(parsed.coveredPoints) ||
+    !Array.isArray(parsed.missingPoints) ||
+    !Array.isArray(parsed.improvementSuggestions) ||
+    typeof parsed.modelAnswer !== "string" ||
+    typeof parsed.examinerTip !== "string"
+  ) {
     throw new Error("Gemini output did not match expected JSON shape");
   }
 
@@ -428,4 +433,4 @@ Deno.serve(async (req: Request) => {
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-  });
+});
