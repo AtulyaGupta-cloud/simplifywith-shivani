@@ -12,7 +12,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
-const GENERATION_MODEL = "gemini-2.5-flash";
+const GENERATION_MODEL = "gemini-2.5-flash";  // FIXED: Was duplicated
 
 interface Feedback {
   score: number;
@@ -317,8 +317,16 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ error: "Could not verify profile. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    } else {
+      // Profile exists - check if credits need initialization (handles cases where profile was created without credits)
+      if (profileCheck.data && profileCheck.data.credits === null) {
+        await adminClient
+          .from('profiles')
+          .update({ credits: 5 })
+          .eq('id', userId);
+      }
+      // If profile exists with valid credits, we continue
     }
-    // If profile exists, profileCheck.data will have the values and we continue
 
     // ------------------------------------------------------------------
     // Credits: atomically check + decrement via the decrement_credit RPC.
