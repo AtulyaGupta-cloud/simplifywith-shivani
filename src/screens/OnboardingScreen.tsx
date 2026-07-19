@@ -5,10 +5,11 @@ import { supabase } from '../lib/supabase';
 
 interface OnboardingScreenProps {
   userId: string;
+  email: string;
   onComplete: () => void;
 }
 
-export default function OnboardingScreen({ userId, onComplete }: OnboardingScreenProps) {
+export default function OnboardingScreen({ userId, email, onComplete }: OnboardingScreenProps) {
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -16,16 +17,15 @@ export default function OnboardingScreen({ userId, onComplete }: OnboardingScree
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = name.trim();
-    if (trimmed.length < 1) {
-      setError('Please enter your name.');
+    if (trimmed.length < 2) {
+      setError('Please enter your full name (at least 2 characters).');
       return;
     }
     setError('');
     setSaving(true);
     const { error: updateError } = await supabase
       .from('profiles')
-      .update({ name: trimmed })
-      .eq('id', userId);
+      .upsert({ id: userId, email, name: trimmed }, { onConflict: 'id' });
     if (updateError) {
       setError('Could not save your name. Please try again.');
       setSaving(false);
@@ -75,6 +75,8 @@ export default function OnboardingScreen({ userId, onComplete }: OnboardingScree
               placeholder="Your name"
               autoFocus
               maxLength={60}
+              required
+              autoComplete="name"
               className="mt-8 w-full rounded-2xl border border-white/[0.06] bg-white/[0.03] px-5 py-3.5 text-center text-base text-white placeholder:text-white/30 transition-colors focus:border-accent-violet/40 focus:bg-white/[0.05] focus:outline-none"
             />
 

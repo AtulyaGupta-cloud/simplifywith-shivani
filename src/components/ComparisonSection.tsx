@@ -36,14 +36,14 @@ export default function ComparisonSection() {
 
         <div className="relative">
           <h2 className="text-lg sm:text-2xl md:text-4xl font-bold text-white text-center mb-5 sm:mb-10 px-1">
-            Why not Claude / ChatGPT / Gemini?
+            Why students choose Evalwell over generic AI
           </h2>
 
           <div className="rounded-xl sm:rounded-2xl overflow-hidden border border-white/10">
             {/* Header row */}
             <div className="grid grid-cols-2">
               <div className="text-center text-[11px] sm:text-base font-semibold text-gray-400 py-2 sm:py-3 bg-white/[0.03] border-r border-white/10">
-                Generic AI
+                ChatGPT · Claude · Gemini
               </div>
               <div className="text-center text-[11px] sm:text-base font-semibold text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-400 py-2 sm:py-3 bg-white/[0.03]">
                 Evalwell

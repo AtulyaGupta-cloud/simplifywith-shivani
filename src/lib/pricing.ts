@@ -2,6 +2,8 @@ import { Coins, Sparkles, Infinity as InfinityIcon } from 'lucide-react';
 
 export interface PricingPlan {
   id: string;
+  creditAmount: number | null;
+  unlimitedDays?: number;
   credits: string;
   price: string;
   icon: typeof Coins;
@@ -13,6 +15,7 @@ export interface PricingPlan {
 export const PRICING_PLANS: PricingPlan[] = [
   {
     id: 'starter',
+    creditAmount: 15,
     credits: '15 credits',
     price: '₹39',
     icon: Coins,
@@ -21,6 +24,7 @@ export const PRICING_PLANS: PricingPlan[] = [
   },
   {
     id: 'popular',
+    creditAmount: 50,
     credits: '50 credits',
     price: '₹99',
     icon: Sparkles,
@@ -30,6 +34,8 @@ export const PRICING_PLANS: PricingPlan[] = [
   },
   {
     id: 'unlimited',
+    creditAmount: null,
+    unlimitedDays: 60,
     credits: 'Unlimited for 60 days',
     price: '₹199',
     icon: InfinityIcon,

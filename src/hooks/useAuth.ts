@@ -16,7 +16,7 @@ export interface AuthState {
   profile: Profile | null;
   loading: boolean;
   isUnlimited: boolean;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => Promise<Profile | null>;
   signOut: () => Promise<void>;
 }
 
@@ -32,12 +32,15 @@ export function useAuth(): AuthState {
       .select('id, name, email, credits, unlimited_until')
       .eq('id', uid)
       .maybeSingle();
-    if (error) return;
-    setProfile(data as Profile);
+    if (error || !data) return null;
+    const nextProfile = data as Profile;
+    setProfile(nextProfile);
+    return nextProfile;
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    if (user) await fetchProfile(user.id);
+    if (!user) return null;
+    return fetchProfile(user.id);
   }, [user, fetchProfile]);
 
   useEffect(() => {
@@ -61,6 +64,7 @@ export function useAuth(): AuthState {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
       (async () => {
         if (!mounted) return;
+        setLoading(true);
         setSession(newSession);
         setUser(newSession?.user ?? null);
         if (newSession?.user) {

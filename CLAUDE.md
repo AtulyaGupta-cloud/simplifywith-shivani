@@ -22,7 +22,7 @@ Live at: https://simplifywith-shivani.vercel.app
 
 ## Core product flow
 1. Student clicks "Start Evaluating" → prompted to sign in with Google (Supabase Auth)
-2. First-time login → asked for their name (onboarding), saved to `profiles` table
+2. Google login automatically routes first-time users to mandatory name onboarding and returning users directly to evaluation
 3. Input screen: student types/dictates (voice input via Web Speech API) the question text + selects marks (1-5, with a special "5 Marks — Writing Section" option for Notice/Letter/Article/Report) + types/dictates their answer
 4. Submission calls the `evaluate-answer` Supabase Edge Function
 5. Edge function: embeds the question → searches `material_chunks` via the `match_chunks` RPC (pgvector cosine similarity) → builds a marks-scaled system prompt → calls Gemini → returns structured JSON feedback
@@ -69,6 +69,7 @@ Live at: https://simplifywith-shivani.vercel.app
   - 50 credits — ₹99 (https://rzp.io/rzp/KZ5iDYaW)
   - Unlimited 60 days — ₹199 (https://rzp.io/rzp/d4dCtZAV)
 - These links are hardcoded in the frontend's pricing/out-of-credits screens
+- The app records the pre-purchase balance, polls Supabase after the Razorpay tab opens, and shows a payment-success screen only after the webhook-confirmed credits appear.
 
 ## Service recovery
 - Migration `20260719170000_compensate_all_profiles_five_credits.sql` granted every existing profile five additional credits once, compensating users for credits consumed by the previous pre-evaluation charging bug.

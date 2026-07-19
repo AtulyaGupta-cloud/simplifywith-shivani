@@ -2,12 +2,12 @@ export default function HowItWorksSection() {
   const steps = [
     {
       icon: "📚",
-      title: "We fed it the real material",
+      title: "Built around real CBSE material",
       desc: "Actual CBSE Class 12 English chapters, poems, and marking schemes.",
     },
     {
       icon: "🎯",
-      title: "It finds your exact chapter",
+      title: "Understands what your question needs",
       desc: "Not a generic guess — the specific reference material for your question.",
     },
     {
@@ -20,7 +20,7 @@ export default function HowItWorksSection() {
   return (
     <section className="w-full max-w-5xl mx-auto px-3 py-10 sm:px-4 sm:py-16">
       <h2 className="text-xl sm:text-2xl md:text-4xl font-bold text-white text-center mb-6 sm:mb-10">
-        How it actually works
+        From your draft to a better answer
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         {steps.map((step, i) => (

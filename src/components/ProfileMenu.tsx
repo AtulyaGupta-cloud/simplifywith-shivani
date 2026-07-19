@@ -4,6 +4,7 @@ import { LogOut, ChevronDown, Coins, Infinity as InfinityIcon, ArrowRight, Histo
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Profile } from '../hooks/useAuth';
 import { PRICING_PLANS } from '../lib/pricing';
+import type { PricingPlan } from '../lib/pricing';
 import HistoryPanel from './HistoryPanel';
 import SubmissionDetailModal from './SubmissionDetailModal';
 
@@ -12,9 +13,10 @@ interface ProfileMenuProps {
   user: SupabaseUser | null;
   isUnlimited: boolean;
   onSignOut: () => void;
+  onPurchaseStart: (plan: PricingPlan) => void;
 }
 
-export default function ProfileMenu({ profile, user, isUnlimited, onSignOut }: ProfileMenuProps) {
+export default function ProfileMenu({ profile, user, isUnlimited, onSignOut, onPurchaseStart }: ProfileMenuProps) {
   const [open, setOpen] = useState(false);
   const [showPlans, setShowPlans] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -170,6 +172,11 @@ export default function ProfileMenu({ profile, user, isUnlimited, onSignOut }: P
                         href={plan.href}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={() => {
+                          onPurchaseStart(plan);
+                          setOpen(false);
+                          setShowPlans(false);
+                        }}
                         className="group flex items-center justify-between gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-2.5 text-xs transition-colors hover:bg-white/[0.07]"
                       >
                         <div className="min-w-0">

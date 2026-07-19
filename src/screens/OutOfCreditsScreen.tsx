@@ -1,12 +1,14 @@
 import { motion } from 'framer-motion';
 import { Coins, ArrowRight } from 'lucide-react';
 import { PRICING_PLANS } from '../lib/pricing';
+import type { PricingPlan } from '../lib/pricing';
 
 interface OutOfCreditsScreenProps {
   onBack: () => void;
+  onPurchaseStart: (plan: PricingPlan) => void;
 }
 
-export default function OutOfCreditsScreen({ onBack }: OutOfCreditsScreenProps) {
+export default function OutOfCreditsScreen({ onBack, onPurchaseStart }: OutOfCreditsScreenProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -43,6 +45,10 @@ export default function OutOfCreditsScreen({ onBack }: OutOfCreditsScreenProps) 
           You've used all your free evaluations. Pick a plan below to keep getting examiner-grade feedback on your answers.
         </motion.p>
 
+        <p className="mt-3 text-xs text-accent-cyan/70">
+          At checkout, use the same email as your Evalwell account so we can add credits automatically.
+        </p>
+
         <div className="mt-10 grid gap-4 sm:grid-cols-3">
           {PRICING_PLANS.map((plan, i) => {
             const Icon = plan.icon;
@@ -75,6 +81,7 @@ export default function OutOfCreditsScreen({ onBack }: OutOfCreditsScreenProps) 
                   href={plan.href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => onPurchaseStart(plan)}
                   className="group mt-6 flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-white/[0.1] active:scale-[0.98]"
                 >
                   Buy
