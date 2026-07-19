@@ -1,8 +1,9 @@
 import { useState, useCallback, Suspense, lazy } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { GraduationCap } from 'lucide-react';
+import { GraduationCap, Loader2 } from 'lucide-react';
 import VantaBackground from './components/VantaBackground';
 import ProfileMenu from './components/ProfileMenu';
+import VisualEffectBoundary from './components/VisualEffectBoundary';
 import LandingScreen from './screens/LandingScreen';
 import LoginScreen from './screens/LoginScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
@@ -71,11 +72,15 @@ export default function App() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <VantaBackground />
+      <VisualEffectBoundary>
+        <VantaBackground />
+      </VisualEffectBoundary>
 
-      <Suspense fallback={null}>
-        <Background3D />
-      </Suspense>
+      <VisualEffectBoundary>
+        <Suspense fallback={null}>
+          <Background3D />
+        </Suspense>
+      </VisualEffectBoundary>
 
       {/* Subtle vignette overlay for readability */}
       <div className="pointer-events-none fixed inset-0 -z-[5] bg-gradient-to-b from-ink-950/40 via-transparent to-ink-950/60" />
@@ -101,7 +106,10 @@ export default function App() {
       </AnimatePresence>
 
       {loading ? (
-        <div className="relative z-10 flex min-h-screen items-center justify-center" />
+        <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-3 text-white/60">
+          <Loader2 className="h-7 w-7 animate-spin text-accent-cyan" aria-hidden />
+          <span className="text-sm">Loading Evalwell…</span>
+        </div>
       ) : (
         <AnimatePresence mode="wait">
           {state === 'landing' && <LandingScreen key="landing" onStart={handleStart} />}

@@ -5,6 +5,9 @@ import { useVoiceInput } from '../hooks/useVoiceInput';
 import { supabase } from '../lib/supabase';
 import type { Feedback } from '../lib/types';
 
+const MAX_QUESTION_LENGTH = 2_000;
+const MAX_ANSWER_LENGTH = 12_000;
+
 interface InputScreenProps {
   onFeedback: (questionText: string, studentAnswer: string, feedback: Feedback) => void;
   onBack: () => void;
@@ -33,7 +36,7 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
   const questionVoice = useVoiceInput(
     useCallback((text: string, isFinal: boolean) => {
       setQuestionText((prev) => {
-        if (isFinal) return prev + (prev && !prev.endsWith(' ') ? ' ' : '') + text;
+        if (isFinal) return (prev + (prev && !prev.endsWith(' ') ? ' ' : '') + text).slice(0, MAX_QUESTION_LENGTH);
         // For interim, we don't replace — just append to show live transcription
         return prev;
       });
@@ -43,22 +46,32 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
   const answerVoice = useVoiceInput(
     useCallback((text: string, isFinal: boolean) => {
       setStudentAnswer((prev) => {
-        if (isFinal) return prev + (prev && !prev.endsWith(' ') ? ' ' : '') + text;
+        if (isFinal) return (prev + (prev && !prev.endsWith(' ') ? ' ' : '') + text).slice(0, MAX_ANSWER_LENGTH);
         return prev;
       });
     }, []),
   );
 
   const wordCount = studentAnswer.trim() ? studentAnswer.trim().split(/\s+/).length : 0;
-  const canSubmit = questionText.trim().length >= 5 && studentAnswer.trim().length >= 10 && selectedMarks !== null && !isSubmitting;
+  const canSubmit = questionText.trim().length >= 5 && questionText.length <= MAX_QUESTION_LENGTH &&
+    studentAnswer.trim().length >= 10 && studentAnswer.length <= MAX_ANSWER_LENGTH &&
+    selectedMarks !== null && !isSubmitting;
 
   const handleSubmit = async () => {
     if (questionText.trim().length < 5) {
       onError('Please enter a complete question.');
       return;
     }
+    if (questionText.length > MAX_QUESTION_LENGTH) {
+      onError('Question is too long — ask bigger questions in parts.');
+      return;
+    }
     if (studentAnswer.trim().length < 10) {
       setAnswerValidationError('Your answer is quite short — try writing at least a few sentences for a meaningful evaluation.');
+      return;
+    }
+    if (studentAnswer.length > MAX_ANSWER_LENGTH) {
+      setAnswerValidationError('Answer is too long — ask bigger questions in parts.');
       return;
     }
     setAnswerValidationError('');
@@ -180,6 +193,7 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
               onChange={(e) => setQuestionText(e.target.value)}
               placeholder="e.g. Q4. Explain how the Tiger King outwitted death four times."
               rows={3}
+              maxLength={MAX_QUESTION_LENGTH}
               className="w-full resize-none rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 pr-14 text-sm leading-relaxed text-white placeholder:text-white/30 transition-colors focus:border-accent-violet/40 focus:bg-white/[0.05] focus:outline-none"
             />
             <div className="absolute right-3 top-3">
@@ -193,6 +207,9 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
           {questionVoice.isListening && (
             <p className="mt-2 text-xs text-red-400/80">Listening… speak your question.</p>
           )}
+          <p className="mt-2 text-right text-[11px] text-white/35">
+            {questionText.length}/{MAX_QUESTION_LENGTH} characters · ask bigger questions in parts
+          </p>
 
           {/* Marks dropdown */}
           <div className="mt-4">
@@ -255,6 +272,7 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
               }}
               placeholder="Write your full answer here. Take your time — be as detailed as you would in the exam."
               rows={8}
+              maxLength={MAX_ANSWER_LENGTH}
               className="w-full resize-none rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 pr-14 text-sm leading-relaxed text-white placeholder:text-white/30 transition-colors focus:border-accent-cyan/40 focus:bg-white/[0.05] focus:outline-none"
             />
             <div className="absolute right-3 top-3">
@@ -268,6 +286,9 @@ export default function InputScreen({ onFeedback, onBack, onError, onOutOfCredit
           {answerVoice.isListening && (
             <p className="mt-2 text-xs text-red-400/80">Listening… speak your answer.</p>
           )}
+          <p className="mt-2 text-right text-[11px] text-white/35">
+            {studentAnswer.length}/{MAX_ANSWER_LENGTH} characters · ask bigger questions in parts
+          </p>
           {answerValidationError && (
             <motion.p
               initial={{ opacity: 0, y: -5 }}

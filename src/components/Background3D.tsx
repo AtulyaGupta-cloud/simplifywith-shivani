@@ -86,6 +86,13 @@ function Scene({ mouseRef }: { mouseRef: React.MutableRefObject<{ x: number; y: 
 export default function Background3D() {
   const mouseRef = useRef({ x: 0, y: 0 });
 
+  try {
+    const canvas = document.createElement('canvas');
+    if (!canvas.getContext('webgl2') && !canvas.getContext('webgl')) return null;
+  } catch {
+    return null;
+  }
+
   const handleMouseMove = (e: React.MouseEvent) => {
     mouseRef.current.x = (e.clientX / window.innerWidth) * 2 - 1;
     mouseRef.current.y = -(e.clientY / window.innerHeight) * 2 + 1;

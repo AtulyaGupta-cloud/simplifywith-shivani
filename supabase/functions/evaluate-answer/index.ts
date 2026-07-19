@@ -1,11 +1,20 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+const baseCorsHeaders = {
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers":
     "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Vary": "Origin",
 };
+
+function corsHeadersFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin");
+  const allowed = origin === "https://simplifywith-shivani.vercel.app" ||
+    !!origin?.match(/^http:\/\/(localhost|127\.0\.0\.1):\d+$/);
+  return allowed && origin
+    ? { ...baseCorsHeaders, "Access-Control-Allow-Origin": origin }
+    : baseCorsHeaders;
+}
 
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
@@ -14,6 +23,8 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const GENERATION_MODEL = "gemini-2.5-flash"; // FIXED: Was duplicated
+const MAX_QUESTION_LENGTH = 2_000;
+const MAX_ANSWER_LENGTH = 12_000;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -278,6 +289,7 @@ async function logSubmission(
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 200, headers: corsHeaders });
   }
@@ -353,20 +365,16 @@ Deno.serve(async (req: Request) => {
       .eq("id", userId)
       .single();
 
-    let profile = profileCheck.data;
-
     if (profileCheck.error && profileCheck.error.code === "PGRST116") {
       // PGRST116 means no rows returned (not found)
-      const { data: createdProfile, error: createError } = await adminClient
+      const { error: createError } = await adminClient
         .from("profiles")
         .insert({
           id: userId,
           email: userData.user.email || "", // Use email from auth user if available
           credits: 5, // Default starting credits
           unlimited_until: null,
-        })
-        .select("credits, unlimited_until")
-        .single();
+        });
       if (createError) {
         return new Response(
           JSON.stringify({
@@ -378,7 +386,6 @@ Deno.serve(async (req: Request) => {
           },
         );
       }
-      profile = createdProfile;
     } else if (profileCheck.error) {
       // Some other error occurred
       return new Response(
@@ -408,64 +415,8 @@ Deno.serve(async (req: Request) => {
             },
           );
         }
-        profile = { ...profileCheck.data, credits: 5 };
       }
       // If profile exists with valid credits, we continue
-    }
-
-    // ------------------------------------------------------------------
-    // Check access without charging. The credit is atomically consumed only
-    // after Gemini has produced valid feedback, so failed evaluations are free.
-    // ------------------------------------------------------------------
-    const hasUnlimitedAccess = !!profile?.unlimited_until &&
-      new Date(profile.unlimited_until).getTime() > Date.now();
-    const availableCredits = profile?.credits ?? 0;
-
-    if (!hasUnlimitedAccess && availableCredits <= 0) {
-      // One-time repair for profiles whose free credits were consumed by the
-      // previous function before any evaluation completed successfully.
-      const { count, error: countError } = await adminClient
-        .from("submissions")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId);
-
-      if (countError) {
-        return new Response(
-          JSON.stringify({
-            error: "Could not verify credit history. Please try again.",
-          }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
-
-      if (count === 0) {
-        const { error: restoreError } = await adminClient
-          .from("profiles")
-          .update({ credits: 5 })
-          .eq("id", userId);
-        if (restoreError) {
-          return new Response(
-            JSON.stringify({
-              error: "Could not restore credits. Please try again.",
-            }),
-            {
-              status: 500,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            },
-          );
-        }
-      } else {
-        return new Response(
-          JSON.stringify({ error: "out_of_credits" }),
-          {
-            status: 402,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          },
-        );
-      }
     }
 
     const body = await req.json();
@@ -477,6 +428,19 @@ Deno.serve(async (req: Request) => {
     ) {
       return new Response(
         JSON.stringify({ error: "A valid question is required." }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    if (questionText.length > MAX_QUESTION_LENGTH) {
+      return new Response(
+        JSON.stringify({
+          error:
+            `Question is too long (maximum ${MAX_QUESTION_LENGTH} characters); ask bigger questions in parts.`,
+        }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -499,6 +463,19 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    if (studentAnswer.length > MAX_ANSWER_LENGTH) {
+      return new Response(
+        JSON.stringify({
+          error:
+            `Answer is too long (maximum ${MAX_ANSWER_LENGTH} characters); ask bigger questions in parts.`,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
     if (typeof marks !== "number" || ![1, 2, 3, 4, 5].includes(marks)) {
       return new Response(
         JSON.stringify({ error: "A valid marks selection is required." }),
@@ -511,11 +488,52 @@ Deno.serve(async (req: Request) => {
 
     const writingFormat = Boolean(isWritingFormat);
 
+    // Atomically reserve capacity before making paid AI calls. Concurrent
+    // requests cannot spend beyond the user's balance, and failures refund it.
+    const reservationId = crypto.randomUUID();
+    const { data: reservationData, error: reservationError } = await adminClient
+      .rpc("reserve_evaluation_credit", {
+        p_user_id: userId,
+        p_request_id: reservationId,
+      });
+    type ReservationResult = {
+      ok: boolean;
+      unlimited: boolean;
+      credits: number;
+    };
+    const reservation = Array.isArray(reservationData)
+      ? (reservationData[0] as ReservationResult | undefined)
+      : (reservationData as ReservationResult | null);
+    if (reservationError || !reservation?.ok) {
+      return new Response(
+        JSON.stringify({
+          error: reservationError
+            ? "Could not reserve credit. Please try again."
+            : "out_of_credits",
+        }),
+        {
+          status: reservationError ? 500 : 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const refundReservation = async () => {
+      const { error } = await adminClient.rpc("refund_evaluation_credit", {
+        p_user_id: userId,
+        p_request_id: reservationId,
+      });
+      if (error) {
+        console.error("Failed to refund credit reservation:", error.message);
+      }
+    };
+
     // Step 1: Generate embedding for the question
     let queryEmbedding: number[];
     try {
       queryEmbedding = await generateEmbedding(questionText);
     } catch (error) {
+      await refundReservation();
       return new Response(
         JSON.stringify({
           error: `Failed to generate question embedding: ${
@@ -542,6 +560,7 @@ Deno.serve(async (req: Request) => {
         bestChapterId = referenceChunks[0].chapter_id;
       }
     } catch (error) {
+      await refundReservation();
       // Continue without reference material — evaluate on general standards
       console.error("match_chunks failed:", errorMessage(error));
     }
@@ -585,24 +604,18 @@ Deno.serve(async (req: Request) => {
     if (feedback.score < 0) feedback.score = 0;
     if (feedback.score > marks) feedback.score = marks;
 
-    // Charge exactly once, and only after a successful evaluation.
-    const { data: creditData, error: creditError } = await adminClient.rpc(
-      "decrement_credit",
-      { user_uuid: userId },
+    const { data: completed, error: completionError } = await adminClient.rpc(
+      "complete_evaluation_credit",
+      { p_user_id: userId, p_request_id: reservationId },
     );
-    type CreditResult = { ok: boolean; unlimited: boolean; credits: number };
-    const creditResult = Array.isArray(creditData)
-      ? (creditData[0] as CreditResult | undefined)
-      : (creditData as CreditResult | null);
-    if (creditError || !creditResult?.ok) {
+    if (completionError || completed !== true) {
+      await refundReservation();
       return new Response(
         JSON.stringify({
-          error: creditError
-            ? "Could not charge credit. Please try again."
-            : "out_of_credits",
+          error: "Could not finalize credit. Please try again.",
         }),
         {
-          status: creditError ? 500 : 402,
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );

@@ -32,12 +32,12 @@ frontend-check:
 	npm run build
 
 edge-check:
-	deno check --config supabase/functions/deno.json supabase/functions/evaluate-answer/index.ts
-	deno lint --config supabase/functions/deno.json supabase/functions/evaluate-answer/index.ts
-	deno fmt --check --config supabase/functions/deno.json supabase/functions/evaluate-answer/index.ts supabase/functions/deno.json
+	deno check --config supabase/functions/deno.json supabase/functions/evaluate-answer/index.ts supabase/functions/razorpay-webhook/index.ts
+	deno lint --config supabase/functions/deno.json supabase/functions/evaluate-answer/index.ts supabase/functions/razorpay-webhook/index.ts
+	deno fmt --check --config supabase/functions/deno.json supabase/functions/evaluate-answer/index.ts supabase/functions/razorpay-webhook/index.ts supabase/functions/deno.json
 
 format:
-	deno fmt --config supabase/functions/deno.json supabase/functions/evaluate-answer/index.ts supabase/functions/deno.json
+	deno fmt --config supabase/functions/deno.json supabase/functions/evaluate-answer/index.ts supabase/functions/razorpay-webhook/index.ts supabase/functions/deno.json
 
 supabase-init:
 	supabase init

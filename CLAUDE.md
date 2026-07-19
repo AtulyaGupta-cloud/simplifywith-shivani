@@ -30,24 +30,25 @@ Live at: https://simplifywith-shivani.vercel.app
 
 ## Database schema (Supabase, project ref `itxbnthhpaojcaylcxdx`)
 - `chapters` — id, title (category names like "Chapters - The Last Lesson", "Writing - Notice", "General - Marking Schemes")
-- `material_chunks` — id, chapter_id, source_file, content, embedding (vector(768)) — RLS: public SELECT only
+- `material_chunks` — id, chapter_id, source_file, content, embedding (vector(768)) — private to service-role RAG calls
 - `submissions` — id, chapter_id, question_text, student_answer, ai_feedback (jsonb), score, max_score, created_at — RLS: insert-only, no public read
 - `profiles` — id (matches auth.users id), name, email, credits (int, default 5), unlimited_until (timestamptz), created_at — RLS: user can only view/update own row
 - All tables have RLS enabled (this was a real security issue Supabase flagged and we fixed — do NOT disable RLS on any table)
 
 ## Key Postgres functions
 - `match_chunks(query_embedding vector(768), match_count int)` — returns top-N chunks by cosine similarity, searches the WHOLE library (no chapter filter — students don't pick a chapter, they just type their question and the RAG search finds relevant material automatically)
-- `decrement_credit(user_uuid uuid)` — atomic credit check + deduction. Returns jsonb `{ok, unlimited, credits}`. Contains a hardcoded list of unlimited-access emails (currently `atulyagupta669@gmail.com`, `shivanidevgupta@gmail.com`) — edit this function directly in SQL to add/remove unlimited users, do NOT try to manage this list in the edge function code.
+- `reserve_evaluation_credit`, `complete_evaluation_credit`, `refund_evaluation_credit` — service-role-only atomic reservation flow that prevents concurrent overspending and refunds failed evaluations.
+- `fulfill_razorpay_payment` — service-role-only, idempotent payment fulfillment keyed by Razorpay payment ID.
 
 ## Edge Functions (in `supabase/functions/`)
 - `evaluate-answer` — the main evaluation function. Key details:
   - Requires auth (Bearer token), verifies via `userClient.auth.getUser(jwt)` — the anon client must be created with `SUPABASE_ANON_KEY`, NOT the user's own token (this was a real bug we hit and fixed)
-  - Checks access before doing AI work, then calls `decrement_credit` only after valid feedback is generated so failed evaluations do not consume credits
+  - Atomically reserves a credit before AI work, refunds failures, and completes the reservation only after valid feedback is generated
   - Has a retry/fallback system: first attempt at full quality (8192 max output tokens), if that fails (parse error, cutoff, etc.) retries once with a more compact prompt; if both fail, returns a graceful `fallbackFeedback()` object instead of crashing
   - Marks-scaled depth guidance: different evaluation strictness for 1-2 marks (short answer) vs 3-4 marks vs 5 marks literature vs 5 marks writing-format (checks Notice/Letter/Article/Report format conventions specifically)
   - System prompt MANDATES the first "missingPoints" item always be a bolded "Keywords: **x**, **y**..." line
   - Logs every submission to the `submissions` table (non-blocking, wrapped in try/catch so logging failures don't break the response)
-- `razorpay-webhook` — listens for Razorpay `payment.captured` events, verifies HMAC signature, matches payment to a `profiles` row by email, auto-credits: ₹39→+15 credits, ₹99→+50 credits, ₹199→60-day unlimited_until
+- `razorpay-webhook` — has gateway JWT verification disabled because Razorpay cannot send Supabase JWTs; it requires HMAC verification, enforces payload limits, and uses idempotent atomic fulfillment: ₹39→+15 credits, ₹99→+50 credits, ₹199→60-day unlimited_until
 
 ## Known gotchas / things to watch for
 - `SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `RAZORPAY_WEBHOOK_SECRET` are all set as Edge Function secrets in Supabase — never hardcode these
