@@ -42,6 +42,9 @@ export function useAuth(): AuthState {
 
   useEffect(() => {
     let mounted = true;
+    const loadingTimeout = window.setTimeout(() => {
+      if (mounted) setLoading(false);
+    }, 8_000);
 
     (async () => {
       const { data } = await supabase.auth.getSession();
@@ -52,6 +55,7 @@ export function useAuth(): AuthState {
         await fetchProfile(data.session.user.id);
       }
       setLoading(false);
+      window.clearTimeout(loadingTimeout);
     })();
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
@@ -65,11 +69,13 @@ export function useAuth(): AuthState {
           setProfile(null);
         }
         setLoading(false);
+        window.clearTimeout(loadingTimeout);
       })();
     });
 
     return () => {
       mounted = false;
+      window.clearTimeout(loadingTimeout);
       sub.subscription.unsubscribe();
     };
   }, [fetchProfile]);
